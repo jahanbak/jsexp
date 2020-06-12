@@ -40,57 +40,83 @@ var presets = [
         //feed: 0.018,
         //kill: 0.051
         feed: 0.037,
-        kill: 0.06
+        kill: 0.06,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Solitons
         feed: 0.03,
-        kill: 0.062
+        kill: 0.062,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Pulsating solitons
         feed: 0.025,
-        kill: 0.06
+        kill: 0.06,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Worms.
         feed: 0.078,
-        kill: 0.061
+        kill: 0.061,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Mazes
         feed: 0.029,
-        kill: 0.057
+        kill: 0.057,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Holes
         feed: 0.039,
-        kill: 0.058
+        kill: 0.058,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Chaos
         feed: 0.026,
-        kill: 0.051
+        kill: 0.051,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Chaos and holes (by clem)
         feed: 0.034,
-        kill: 0.056
+        kill: 0.056,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Moving spots.
         feed: 0.014,
-        kill: 0.054
+        kill: 0.054,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Spots and loops.
         feed: 0.018,
-        kill: 0.051
+        kill: 0.051,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // Waves
         feed: 0.014,
-        kill: 0.045
+        kill: 0.045,
+        difu: 0.2097,
+        difv: 0.105
     },
     { // The U-Skate World
         feed: 0.062,
-        kill: 0.06093
+        kill: 0.06093,
+        difu: 0.2097,
+        difv: 0.105
     }
 ];
 
 // Configuration.
 var feed = presets[0].feed;
 var kill = presets[0].kill;
+var difu = presets[0].difu;
+var difv = presets[0].difv;
 
 init = function()
 {
@@ -117,8 +143,13 @@ init = function()
         delta: {type: "f", value: 1.0},
         feed: {type: "f", value: feed},
         kill: {type: "f", value: kill},
+        difu: {type: "f", value: difu},
+        difv: {type: "f", value: difv},
+        minVal: {type: "f", value: 0.0},
+        maxVal: {type: "f", value: 1.0},
+        showU: {type: "f", value: 0.0},
         brush: {type: "v2", value: new THREE.Vector2(-10, -10)},
-        color1: {type: "v4", value: new THREE.Vector4(0, 0, 0.0, 0)},
+        color1: {type: "v4", value: new THREE.Vector4(0, 0, 0, 0)},
         color2: {type: "v4", value: new THREE.Vector4(0, 1, 0, 0.2)},
         color3: {type: "v4", value: new THREE.Vector4(1, 1, 0, 0.21)},
         color4: {type: "v4", value: new THREE.Vector4(1, 0, 0, 0.4)},
@@ -186,15 +217,22 @@ var resize = function(width, height)
 
 var render = function(time)
 {
-    var dt = (time - mLastTime)/20.0;
-    if(dt > 0.8 || dt<=0)
-        dt = 0.8;
+//    var dt = (time - mLastTime)/20.0;
+//    if(dt > 0.8 || dt<=0)
+//        dt = 0.8;
+//    mLastTime = time;
+
+    var dt = 0.9*0.2097/(0.0001+Math.max(difu,difv));
+    if(dt > 0.9 || dt<=0)
+        dt = 0.9;
     mLastTime = time;
     
     mScreenQuad.material = mGSMaterial;
     mUniforms.delta.value = dt;
     mUniforms.feed.value = feed;
     mUniforms.kill.value = kill;
+    mUniforms.difu.value = difu;
+    mUniforms.difv.value = difv;
     
     for(var i=0; i<8; ++i)
     {
@@ -228,6 +266,8 @@ loadPreset = function(idx)
 {
     feed = presets[idx].feed;
     kill = presets[idx].kill;
+    difu = presets[idx].difu;
+    difv = presets[idx].difv;
     worldToForm();
 }
 
@@ -276,6 +316,11 @@ var onMouseUp = function(e)
 clean = function()
 {
     mUniforms.brush.value = new THREE.Vector2(-10, -10);
+}
+
+toggle = function()
+{
+    mUniforms.showU.value = mUniforms.showU.value>0.5 ? 0.0 : 1.0;
 }
 
 snapshot = function()
@@ -347,6 +392,8 @@ var worldToForm = function()
     //document.ex.sldReplenishment.value = feed * 1000;
     $("#sld_replenishment").slider("value", feed);
     $("#sld_diminishment").slider("value", kill);
+    $("#sld_difu").slider("value", difu);
+    $("#sld_difv").slider("value", difv);
 }
 
 var init_controls = function()
@@ -357,12 +404,27 @@ var init_controls = function()
         slide: function(event, ui) {$("#replenishment").html(ui.value); feed = ui.value; updateShareString();}
     });
     $("#sld_replenishment").slider("value", feed);
+
     $("#sld_diminishment").slider({
         value: kill, min: 0, max:0.073, step:0.001,
         change: function(event, ui) {$("#diminishment").html(ui.value); kill = ui.value; updateShareString();},
         slide: function(event, ui) {$("#diminishment").html(ui.value); kill = ui.value; updateShareString();}
     });
     $("#sld_diminishment").slider("value", kill);
+
+    $("#sld_difu").slider({
+        value: difu, min: 0, max:1.0, step:0.005,
+        change: function(event, ui) {$("#difu").html(ui.value); difu = ui.value; updateShareString();},
+        slide: function(event, ui) {$("#difu").html(ui.value); difu = ui.value; updateShareString();}
+    });
+    $("#sld_difu").slider("value", difu);
+
+    $("#sld_difv").slider({
+        value: difv, min: 0, max:1.0, step:0.005,
+        change: function(event, ui) {$("#difv").html(ui.value); difv = ui.value; updateShareString();},
+        slide: function(event, ui) {$("#difv").html(ui.value); difv = ui.value; updateShareString();}
+    });
+    $("#sld_difv").slider("value", difv);
     
     $('#share').keypress(function (e) {
         if (e.which == 13) {
@@ -382,6 +444,12 @@ var init_controls = function()
     $("#btn_fullscreen").button({
         icons : {primary : "ui-icon-arrow-4-diag"},
         text : false
+    });
+
+    $(function()
+        {$('#btn_toggle').click(function() {
+           $(this).val() == "Show u" ? $('#btn_toggle').val("Show v") : $('#btn_toggle').val("Show u");
+        });
     });
     
     $("#notworking").click(function(){
